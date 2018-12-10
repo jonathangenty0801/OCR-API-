@@ -1,0 +1,1010 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Microsoft.Build.Execution;
+using System.Drawing;
+using System.IO;
+using Canucks.OCRRepository;
+using Canucks.Entities;
+using System.Diagnostics;
+using System.Data;
+using System.Configuration;
+using System.Data.SqlClient;
+using System.Reflection.Emit;
+using org.apache.pdfbox.pdmodel;
+using org.apache.pdfbox.util;
+using ImageMagick;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+
+namespace OCRConsole
+{
+    public class Program
+    {
+
+        struct Company_ID
+        {
+            public string[] VendorName;// VendorName
+            public string[][] type;//bill or receipt
+            public string[][][] COADate, BOADate;//Posting data
+            public string[][] COAID, BOAID;// Chart of Account; Bank of Account
+            public int[][] COA_count, BOA_count;// then number of COA and BOA
+            public string[] VNames;//Vnedorname history;
+        }
+        static Company_ID C_infor;
+
+        static void Main(string[] args)
+        {
+            string fileName = "8.pdf";
+            string base64Image = "";
+            var allData = string.Empty;
+            PDDocument doc = null;
+            //Check file is pdf 
+            string extension = Path.GetExtension(fileName);
+            bool isPdf = false;
+            if (extension.ToLower() == ".pdf")
+            {
+                isPdf = true;
+            }
+            byte[] imageBytes = System.IO.File.ReadAllBytes("../../Scanned Files/" + fileName);
+
+            if (isPdf)
+            {
+                java.io.InputStream inputStream = new java.io.ByteArrayInputStream(imageBytes);
+                doc = PDDocument.load(inputStream);
+                PDFTextStripper stripper = new PDFTextStripper();
+                allData = stripper.getText(doc);
+
+                //Check if PDF if Non-Searchable or searchable pdf
+                if (String.IsNullOrEmpty(allData) || allData.Length < 60)
+                {
+                    base64Image = NonSearchablePDF(imageBytes);
+                }
+                else
+                {
+                    //Searchable PDF
+                    base64Image = Convert.ToBase64String(imageBytes); //CheckRotationAndConvertToBase64(imageBytes);
+                }
+            }
+            else
+            {
+                //base64String = Convert.ToBase64String(imageBytes); 
+                base64Image = CheckRotationAndConvertToBase64(imageBytes);
+            }
+
+            string companyID = "3313";
+            GetHistoryList(companyID);
+            //string base64Image = ConverImageToBase64(AppDomain.CurrentDomain.BaseDirectory + "../../Scanned Files/2.jpg");
+
+            OCRRepository ocrRepository = new OCRRepository();
+            Task.Run(async () =>
+             {
+                 if (String.IsNullOrEmpty(allData) || allData.Length < 60)
+                 {
+                     //Perform OCR from google api
+                     string rawData = await ocrRepository.PerformOCR(base64Image);
+                     //ocrRepository.get
+                     OCRTransaction ocrTransaction = ocrRepository.GetTransactionDetail(rawData, base64Image);
+                     // ocrTransaction.Bill_receipt
+                     string[] BC = new string[2];
+                     string BOA = "";
+                     string Vname = Last_vendorname(ocrTransaction.VendorName);// the last saved vendorname;
+                     if (ocrTransaction.BankName != null)
+                     {
+                         BOA = BOA_Account(companyID, ocrTransaction.BankName);
+                     }
+                     if (BOA != null && BOA != "")
+                     {
+                         BC = Predict_BOA_COA(C_infor, Vname, true);
+                         BC[1] = BOA;
+                     }
+                     else
+                         BC = Predict_BOA_COA(C_infor, Vname, false);
+
+                     Console.WriteLine("Date: " + ocrTransaction.Date + "\nDue Date: " + ocrTransaction.DueDate + "\nSub Total: " + ocrTransaction.SubTotal + "\nTotal Sum: " + ocrTransaction.TotalSum + "\nTax: " + ocrTransaction.Tax + "\nContact Name: " + Vname + "\nBill ID: " + ocrTransaction.BillID);
+                 }
+                 else
+                 {
+                     //Perform OCR from PDBox
+                     try
+                     {
+                         OCRTransaction ocrTransaction = ocrRepository.GetTransactionDetailForSearchablePDF(doc, allData, imageBytes);
+                         Console.WriteLine("Date: " + ocrTransaction.Date + "\nDue Date: " + ocrTransaction.DueDate + "\nSub Total: " + ocrTransaction.SubTotal + "\nTotal Sum: " + ocrTransaction.TotalSum + "\nTax: " + ocrTransaction.Tax + "\nContact Name: " + ocrTransaction.VendorName + "\nBill ID: " + ocrTransaction.BillID);
+                     }
+                     catch (Exception ex)
+                     {
+                         throw ex;
+                     }
+                 }
+             });
+
+            Console.Read();
+        }
+        // Last Vendorname;
+        static string Last_vendorname(string vstr)
+        {
+            if (vstr == null || vstr == "") return null;
+            if (C_infor.VNames == null || C_infor.VNames.Length == 0)
+                return vstr;
+            for (int i = 0; i < C_infor.VNames.Length; i++)
+            {
+                if (Similar_vendorname(C_infor.VNames[i], vstr))
+                {
+                    return C_infor.VNames[i];
+                }
+            }
+            return vstr;
+        }
+        // Vendorname ML
+        static string Vendorname_ML(string vname)
+        {
+            string[] VN = C_infor.VNames;
+            string[] V = new string[0];
+            int[] count = new int[0];
+            for (int i = 0; i < VN.Length; i++)
+            {
+                if (Similar_vendorname(VN[i], vname))
+                {
+                    bool flag = false;
+                    for (int k = 0; k < V.Length; k++)
+                    {
+                        if (V[k] == VN[i])
+                        {
+                            count[k]++;
+                            flag = true;
+                            break;
+                        }
+                    }
+                    if (!flag)
+                    {
+                        Array.Resize<string>(ref V, V.Length + 1);
+                        V[V.Length - 1] = VN[i];
+                        Array.Resize<int>(ref count, count.Length + 1);
+                        count[count.Length - 1] = 1;
+                    }
+                }
+            }
+            if (V.Length == 0) return vname;
+            double[] weight1 = new double[V.Length];
+            double[] weight2 = new double[V.Length];
+            int sum = 0;
+            for (int i = 0; i < weight1.Length; i++)
+                sum += count[i];
+            for (int i = 0; i < weight1.Length; i++)
+                weight1[i] = (float)count[i] / (float)sum;
+            int sum1 = (weight2.Length - 1) * weight2.Length / 2;
+            for (int i = 0; i < weight2.Length; i++)
+                weight2[i] = (float)(weight2.Length - i - 1) / (float)sum1;
+            float M1 = 0.3f, M2 = 0.7f;
+            double max = 0;
+            int index = -1;
+            for (int i = 0; i < weight2.Length; i++)
+            {
+                double S = M1 * weight1[i] + M2 * weight2[i];
+                if (S > max)
+                {
+                    max = S;
+                    index = i;
+                }
+            }
+            return V[index];
+        }
+        static string ConverImageToBase64(string imagePath)
+        {
+            string base64String = "";
+            using (Image image = Image.FromFile(imagePath))
+            {
+                using (MemoryStream m = new MemoryStream())
+                {
+                    image.Save(m, image.RawFormat);
+                    byte[] imageBytes = m.ToArray();
+                    // Convert byte[] to Base64 String
+                    base64String = Convert.ToBase64String(imageBytes);
+                    //return base64String;
+                }
+            }
+            return base64String;
+        }
+
+        // similarity of two vendornames
+        static bool Similar_vendorname(string V1, string V2)
+        {
+            string v1 = V1.Trim(), v2 = V2.Trim();
+            if (v1.Length < v2.Length)
+            {
+                string c = v1;
+                v1 = v2;
+                v2 = c;
+            }
+            if (v1.Contains(v2))
+                return true;
+            int pos = 0, num = 0;
+            for (int i = 0; i < v2.Length; i++)
+            {
+                if (pos >= v1.Length - 1)
+                    break;
+                for (int j = pos; j < v1.Length; j++)
+                {
+                    if (v2[i] == v1[j])
+                    {
+                        pos = j;
+                        num++;
+                    }
+                }
+            }
+            if ((float)num / (float)v2.Length > 0.75)
+                return true;
+            return false;
+        }
+        static string BOA_Account(string CompanyID, string Lastnum)
+        {
+            string connstring = ConfigurationManager.ConnectionStrings["CA_DataConnection"].ConnectionString;
+            using (SqlConnection con = new SqlConnection(connstring))
+            {
+                using (SqlCommand cmd = new SqlCommand("SELECT * FROM ChartOfAccounts WHERE CompanyID='" + CompanyID + " and AccountTypeID=2"))
+                {
+                    con.Open();
+                    SqlDataReader reader = cmd.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        string C = "", B = "";
+                        C = reader["Identity"].ToString();
+                        B = reader["ID"].ToString();
+                        if (C.Length > 4)
+                        {
+                            string C1 = C.Substring(C.Length - 4, 4);
+                            if (Lastnum == C1)
+                            {
+                                con.Close();
+                                return B;
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+        static void GetHistoryList(string CompanyID)
+        {
+            int num = 0;
+            string connstring = ConfigurationManager.ConnectionStrings["US_DataConnection"].ConnectionString;
+            using (SqlConnection con = new SqlConnection(connstring))
+            {
+                using (SqlCommand cmd = new SqlCommand("SELECT * FROM OCRTransactions WHERE CompanyID='" + CompanyID + "'", con))
+                {
+                    con.Open();
+                    SqlDataReader reader = cmd.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        string C = "", B = "", V = "", type = "", post = "";
+                        C = reader["ChartOfAccountID"].ToString();
+                        B = reader["BankID"].ToString();
+                        V = reader["VendorName"].ToString();
+                        post = reader["PostingDate"].ToString();
+                        type = reader["Type"].ToString();
+                        if (V != null && V != "")
+                        {
+                            if (B != null && B != "")
+                            {
+                                if (C != null && C != "")
+                                {
+                                    Get_Cominfo(C, B, V, type, post);
+                                }
+                                else
+                                {
+                                    Get_Cominfo("", B, V, type, post);
+                                }
+                            }
+                            else
+                            {
+                                if (C != null && C != "")
+                                {
+                                    Get_Cominfo(C, "", V, type, post);
+                                }
+                                else
+                                    Get_Cominfo("", "", V, type, post);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        static void Get_Cominfo(string COA, string BOA, string VendorName, string type, string post)
+        {
+            if (C_infor.VendorName == null)
+            {
+
+                C_infor = new Company_ID();
+
+                C_infor.VNames = new string[1];
+                C_infor.VNames[0] = VendorName;
+
+                C_infor.VendorName = new string[0];
+                Array.Resize<string>(ref C_infor.VendorName, C_infor.VendorName.Length + 1);
+                int m = C_infor.VendorName.Length - 1;
+                C_infor.VendorName[m] = VendorName;
+
+
+                C_infor.type = new string[0][];
+                Array.Resize<string[]>(ref C_infor.type, C_infor.type.Length + 1);
+                C_infor.type[C_infor.type.Length - 1] = new string[0];
+                Array.Resize<string>(ref C_infor.type[C_infor.type.Length - 1], C_infor.type[C_infor.type.Length - 1].Length + 1);
+                C_infor.type[C_infor.type.Length - 1][C_infor.type[C_infor.type.Length - 1].Length - 1] = type;
+
+                C_infor.COAID = new string[0][];
+                Array.Resize<string[]>(ref C_infor.COAID, C_infor.COAID.Length + 1);
+                C_infor.COAID[C_infor.COAID.Length - 1] = new string[0];
+
+                C_infor.COA_count = new int[0][];
+                Array.Resize<int[]>(ref C_infor.COA_count, C_infor.COA_count.Length + 1);
+                C_infor.COA_count[C_infor.COA_count.Length - 1] = new int[0];
+
+                C_infor.COADate = new string[0][][];
+                Array.Resize<string[][]>(ref C_infor.COADate, C_infor.COADate.Length + 1);
+                C_infor.COADate[C_infor.COADate.Length - 1] = new string[0][];
+
+                if (COA != "")
+                {
+
+                    Array.Resize<string>(ref C_infor.COAID[C_infor.COAID.Length - 1], C_infor.COAID[C_infor.COAID.Length - 1].Length + 1);
+                    C_infor.COAID[C_infor.COAID.Length - 1][C_infor.COAID[C_infor.COAID.Length - 1].Length - 1] = COA;
+
+                    Array.Resize<int>(ref C_infor.COA_count[C_infor.COA_count.Length - 1], C_infor.COA_count[C_infor.COA_count.Length - 1].Length + 1);
+                    C_infor.COA_count[C_infor.COA_count.Length - 1][C_infor.COA_count[C_infor.COA_count.Length - 1].Length - 1] = 1;
+
+                    Array.Resize<string[]>(ref C_infor.COADate[C_infor.COADate.Length - 1], C_infor.COADate[C_infor.COADate.Length - 1].Length + 1);
+                    int ll = C_infor.COADate[C_infor.COADate.Length - 1].Length - 1;
+                    C_infor.COADate[C_infor.COADate.Length - 1][ll] = new string[0];
+                    Array.Resize<string>(ref C_infor.COADate[C_infor.COADate.Length - 1][ll], C_infor.COADate[C_infor.COADate.Length - 1][ll].Length + 1);
+                    C_infor.COADate[C_infor.COADate.Length - 1][ll][C_infor.COADate[C_infor.COADate.Length - 1][ll].Length - 1] = post;
+
+                }
+
+                C_infor.BOADate = new string[0][][];
+                Array.Resize<string[][]>(ref C_infor.BOADate, C_infor.BOADate.Length + 1);
+                C_infor.BOADate[C_infor.BOADate.Length - 1] = new string[0][];
+
+                C_infor.BOAID = new string[0][];
+                Array.Resize<string[]>(ref C_infor.BOAID, C_infor.BOAID.Length + 1);
+                C_infor.BOAID[C_infor.BOAID.Length - 1] = new string[0];
+
+                C_infor.BOA_count = new int[0][];
+                Array.Resize<int[]>(ref C_infor.BOA_count, C_infor.BOA_count.Length + 1);
+                C_infor.BOA_count[C_infor.BOA_count.Length - 1] = new int[0];
+
+                if (BOA != "")
+                {
+                    Array.Resize<string>(ref C_infor.BOAID[C_infor.BOAID.Length - 1], C_infor.BOAID[C_infor.BOAID.Length - 1].Length + 1);
+                    C_infor.BOAID[C_infor.BOAID.Length - 1][C_infor.BOAID[C_infor.BOAID.Length - 1].Length - 1] = BOA;
+
+                    Array.Resize<int>(ref C_infor.BOA_count[C_infor.BOA_count.Length - 1], C_infor.BOA_count[C_infor.BOA_count.Length - 1].Length + 1);
+                    C_infor.BOA_count[C_infor.BOA_count.Length - 1][C_infor.BOA_count[C_infor.BOA_count.Length - 1].Length - 1] = 1;
+
+                    Array.Resize<string[]>(ref C_infor.BOADate[C_infor.BOADate.Length - 1], C_infor.BOADate[C_infor.BOADate.Length - 1].Length + 1);
+                    int ll = C_infor.BOADate[C_infor.BOADate.Length - 1].Length - 1;
+                    C_infor.BOADate[C_infor.BOADate.Length - 1][ll] = new string[0];
+                    Array.Resize<string>(ref C_infor.BOADate[C_infor.BOADate.Length - 1][ll], C_infor.BOADate[C_infor.BOADate.Length - 1][ll].Length + 1);
+                    C_infor.BOADate[C_infor.BOADate.Length - 1][ll][C_infor.BOADate[C_infor.BOADate.Length - 1][ll].Length - 1] = post;
+                }
+            }
+            else
+            {
+                Array.Resize<string>(ref C_infor.VNames, C_infor.VNames.Length + 1);
+                C_infor.VNames[C_infor.VNames.Length - 1] = VendorName;
+                int index1 = -1;
+                for (int j = 0; j < C_infor.VendorName.Length; j++)
+                {
+                    if (Similar_vendorname(C_infor.VendorName[j], VendorName))
+                    {
+                        index1 = j;
+                        break;
+                    }
+                }
+                if (index1 == -1)
+                {
+                    Array.Resize<string>(ref C_infor.VendorName, C_infor.VendorName.Length + 1);
+                    int m = C_infor.VendorName.Length - 1;
+                    C_infor.VendorName[m] = VendorName;
+
+                    Array.Resize<string[]>(ref C_infor.type, C_infor.type.Length + 1);
+                    C_infor.type[C_infor.type.Length - 1] = new string[0];
+                    Array.Resize<string>(ref C_infor.type[C_infor.type.Length - 1], C_infor.type[C_infor.type.Length - 1].Length + 1);
+                    C_infor.type[C_infor.type.Length - 1][C_infor.type[C_infor.type.Length - 1].Length - 1] = type;
+
+                    Array.Resize<string[][]>(ref C_infor.COADate, C_infor.COADate.Length + 1);
+                    C_infor.COADate[C_infor.COADate.Length - 1] = new string[0][];
+
+                    Array.Resize<string[]>(ref C_infor.COAID, C_infor.COAID.Length + 1);
+                    C_infor.COAID[C_infor.COAID.Length - 1] = new string[0];
+
+                    Array.Resize<int[]>(ref C_infor.COA_count, C_infor.COA_count.Length + 1);
+                    C_infor.COA_count[C_infor.COA_count.Length - 1] = new int[0];
+
+                    if (COA != "")
+                    {
+
+                        Array.Resize<string>(ref C_infor.COAID[C_infor.COAID.Length - 1], C_infor.COAID[C_infor.COAID.Length - 1].Length + 1);
+                        C_infor.COAID[C_infor.COAID.Length - 1][C_infor.COAID[C_infor.COAID.Length - 1].Length - 1] = COA;
+
+                        Array.Resize<int>(ref C_infor.COA_count[C_infor.COA_count.Length - 1], C_infor.COA_count[C_infor.COA_count.Length - 1].Length + 1);
+                        C_infor.COA_count[C_infor.COA_count.Length - 1][C_infor.COA_count[C_infor.COA_count.Length - 1].Length - 1] = 1;
+
+                        Array.Resize<string[]>(ref C_infor.COADate[C_infor.COADate.Length - 1], C_infor.COADate[C_infor.COADate.Length - 1].Length + 1);
+                        int ll = C_infor.COADate[C_infor.COADate.Length - 1].Length - 1;
+                        C_infor.COADate[C_infor.COADate.Length - 1][ll] = new string[0];
+                        Array.Resize<string>(ref C_infor.COADate[C_infor.COADate.Length - 1][ll], C_infor.COADate[C_infor.COADate.Length - 1][ll].Length + 1);
+                        C_infor.COADate[C_infor.COADate.Length - 1][ll][C_infor.COADate[C_infor.COADate.Length - 1][ll].Length - 1] = post;
+
+                    }
+
+                    Array.Resize<string[][]>(ref C_infor.BOADate, C_infor.BOADate.Length + 1);
+                    C_infor.BOADate[C_infor.BOADate.Length - 1] = new string[0][];
+
+                    Array.Resize<string[]>(ref C_infor.BOAID, C_infor.BOAID.Length + 1);
+                    C_infor.BOAID[C_infor.BOAID.Length - 1] = new string[0];
+
+                    Array.Resize<int[]>(ref C_infor.BOA_count, C_infor.BOA_count.Length + 1);
+                    C_infor.BOA_count[C_infor.BOA_count.Length - 1] = new int[0];
+
+                    if (BOA != "")
+                    {
+
+                        Array.Resize<string>(ref C_infor.BOAID[C_infor.BOAID.Length - 1], C_infor.BOAID[C_infor.BOAID.Length - 1].Length + 1);
+                        C_infor.BOAID[C_infor.BOAID.Length - 1][C_infor.BOAID[C_infor.BOAID.Length - 1].Length - 1] = BOA;
+
+                        Array.Resize<int>(ref C_infor.BOA_count[C_infor.BOA_count.Length - 1], C_infor.BOA_count[C_infor.BOA_count.Length - 1].Length + 1);
+                        C_infor.BOA_count[C_infor.BOA_count.Length - 1][C_infor.BOA_count[C_infor.BOA_count.Length - 1].Length - 1] = 1;
+
+                        Array.Resize<string[]>(ref C_infor.BOADate[C_infor.BOADate.Length - 1], C_infor.BOADate[C_infor.BOADate.Length - 1].Length + 1);
+                        int ll = C_infor.BOADate[C_infor.BOADate.Length - 1].Length - 1;
+                        C_infor.BOADate[C_infor.BOADate.Length - 1][ll] = new string[0];
+                        Array.Resize<string>(ref C_infor.BOADate[C_infor.BOADate.Length - 1][ll], C_infor.BOADate[C_infor.BOADate.Length - 1][ll].Length + 1);
+                        C_infor.BOADate[C_infor.BOADate.Length - 1][ll][C_infor.BOADate[C_infor.BOADate.Length - 1][ll].Length - 1] = post;
+                    }
+                }
+                else
+                {
+                    int index2 = -1;
+                    Array.Resize<string>(ref C_infor.type[index1], C_infor.type[index1].Length + 1);
+                    C_infor.type[index1][C_infor.type[index1].Length - 1] = type;
+                    if (BOA != "")
+                    {
+                        for (int j = 0; j < C_infor.BOAID[index1].Length; j++)
+                        {
+                            if (C_infor.BOAID[index1][j] == BOA)
+                            {
+                                index2 = j;
+                                break;
+                            }
+                        }
+                        if (index2 == -1)
+                        {
+
+                            Array.Resize<string>(ref C_infor.BOAID[index1], C_infor.BOAID[index1].Length + 1);
+                            C_infor.BOAID[index1][C_infor.BOAID[index1].Length - 1] = BOA;
+
+                            Array.Resize<int>(ref C_infor.BOA_count[index1], C_infor.BOA_count[index1].Length + 1);
+                            C_infor.BOA_count[index1][C_infor.BOA_count[index1].Length - 1] = 1;
+
+                            Array.Resize<string[]>(ref C_infor.BOADate[index1], C_infor.BOADate[index1].Length + 1);
+                            int ll = C_infor.BOADate[index1].Length - 1;
+                            C_infor.BOADate[index1][ll] = new string[0];
+                            Array.Resize<string>(ref C_infor.BOADate[index1][ll], C_infor.BOADate[index1][ll].Length + 1);
+                            C_infor.BOADate[index1][ll][C_infor.BOADate[index1][ll].Length - 1] = post;
+                        }
+                        else
+                        {
+                            C_infor.BOA_count[index1][index2]++;
+
+                            Array.Resize<string>(ref C_infor.BOADate[index1][index2], C_infor.BOADate[index1][index2].Length + 1);
+                            C_infor.BOADate[index1][index2][C_infor.BOADate[index1][index2].Length - 1] = post;
+                        }
+                    }
+                    if (COA != "")
+                    {
+                        index2 = -1;
+                        for (int j = 0; j < C_infor.COAID[index1].Length; j++)
+                        {
+                            if (C_infor.COAID[index1][j] == COA)
+                            {
+                                index2 = j;
+                                break;
+                            }
+                        }
+                        if (index2 == -1)
+                        {
+                            Array.Resize<string>(ref C_infor.COAID[index1], C_infor.COAID[index1].Length + 1);
+                            C_infor.COAID[index1][C_infor.COAID[index1].Length - 1] = COA;
+
+                            Array.Resize<int>(ref C_infor.COA_count[index1], C_infor.COA_count[index1].Length + 1);
+                            C_infor.COA_count[index1][C_infor.COA_count[index1].Length - 1] = 1;
+
+                            Array.Resize<string[]>(ref C_infor.COADate[index1], C_infor.COADate[index1].Length + 1);
+                            int ll = C_infor.COADate[index1].Length - 1;
+                            C_infor.COADate[index1][ll] = new string[0];
+                            Array.Resize<string>(ref C_infor.COADate[index1][ll], C_infor.COADate[index1][ll].Length + 1);
+                            C_infor.COADate[index1][ll][C_infor.COADate[index1][ll].Length - 1] = post;
+                        }
+                        else
+                        {
+                            C_infor.COA_count[index1][index2]++;
+                            Array.Resize<string>(ref C_infor.COADate[index1][index2], C_infor.COADate[index1][index2].Length + 1);
+                            C_infor.COADate[index1][index2][C_infor.COADate[index1][index2].Length - 1] = post;
+                        }
+                    }
+
+                }
+            }
+
+        }
+        static string[] Predict_BOA_COA(Company_ID C_infor, string VendorName, bool Bflag)
+        {
+            string[] B_C = new string[2];//B_C[0]= Chart of Account;B_C[1]= Bank of Account;
+            if (VendorName == null || VendorName == "") return null;
+
+            if (C_infor.VendorName.Length > 0)
+            {
+                int m = -1;
+                for (int j = 0; j < C_infor.VendorName.Length; j++)
+                {
+                    if (Similar_vendorname(C_infor.VendorName[j], VendorName))
+                    {
+                        m = j;
+                        break;
+                    }
+                }
+                if (m != -1)
+                {
+                    //if (C_infor.type[m].Length > 0)
+                    //    B_C[2] = C_infor.type[m][0];
+                    if (C_infor.COAID[m].Length > 0)
+                    {
+                        double[] ID_weight = new double[C_infor.COAID[m].Length];
+                        double[] ID_weight1 = new double[C_infor.COAID[m].Length];
+                        double[] ID_weight2 = new double[C_infor.COAID[m].Length];
+                        //double[] ID_weight3 = new double[C_infor.COAID[m].Length];
+                        ID_weight1 = Weight1(C_infor.COA_count[m]);
+                        ID_weight2 = Weight2(C_infor.COADate[m]);
+                        //ID_weight3 = Weight3(C_infor.COA_count[m]);
+                        double Max = 0;
+                        int Mindex = 0;
+                        double M1 = 0.3, M2 = 0.7, M3 = 0.3;
+                        for (int i = 0; i < ID_weight.Length; i++)
+                        {
+                            ID_weight[i] = ID_weight1[i] * M1 + ID_weight2[i] * M2;
+                            if (ID_weight[i] > Max)
+                            {
+                                Max = ID_weight[i];
+                                Mindex = i;
+                            }
+                        }
+                        B_C[0] = C_infor.COAID[m][Mindex];
+                    }
+                    else
+                    {
+                        B_C[0] = Predict1(C_infor, 0);
+                    }
+                    if (!Bflag)
+                    {
+                        if (C_infor.BOAID[m].Length > 0)
+                        {
+                            double[] ID_weight = new double[C_infor.BOAID[m].Length];
+                            double[] ID_weight1 = new double[C_infor.BOAID[m].Length];
+                            double[] ID_weight2 = new double[C_infor.BOAID[m].Length];
+                            //double[] ID_weight3 = new double[C_infor.BOAID[m].Length];
+                            ID_weight1 = Weight1(C_infor.BOA_count[m]);
+                            ID_weight2 = Weight2(C_infor.BOADate[m]);
+                            //ID_weight3 = Weight3(C_infor.BOA_count[m]);
+                            double Max = 0;
+                            int Mindex = 0;
+                            double M1 = 0.3, M2 = 0.7, M3 = 0.3;
+                            for (int i = 0; i < ID_weight.Length; i++)
+                            {
+                                ID_weight[i] = ID_weight1[i] * M1 + ID_weight2[i] * M2;
+                                if (ID_weight[i] > Max)
+                                {
+                                    Max = ID_weight[i];
+                                    Mindex = i;
+                                }
+                            }
+                            B_C[1] = C_infor.BOAID[m][Mindex];
+                        }
+                        else
+                        {
+                            B_C[1] = Predict1(C_infor, 1);
+                        }
+                    }
+                }
+                else
+                {
+                    B_C[0] = Predict1(C_infor, 0);
+                    if (Bflag) B_C[1] = Predict1(C_infor, 1);
+                }
+            }
+            else
+                return null;
+            return B_C;
+        }
+        static string Predict1(Company_ID C_inf, int num)
+        {
+            string B_C = "";
+            string[] ID = new string[0];
+            int[] ID_Count = new int[0];
+            string[][] ID_index = new string[0][];
+            if (num == 0)
+            {
+                for (int i = 0; i < C_infor.COADate.Length; i++)
+                {
+                    if (C_inf.COAID[i] == null)
+                        continue;
+                    for (int j = 0; j < C_infor.COADate[i].Length; j++)
+                    {
+                        int index = -1;
+                        for (int k = 0; k < ID.Length; k++)
+                        {
+                            if (ID[k] == C_inf.COAID[i][j])
+                            {
+                                index = k;
+                                break;
+                            }
+                        }
+                        if (index == -1)
+                        {
+                            Array.Resize<string>(ref ID, ID.Length + 1);
+                            ID[ID.Length - 1] = C_inf.COAID[i][j];
+
+                            Array.Resize<int>(ref ID_Count, ID_Count.Length + 1);
+                            ID_Count[ID_Count.Length - 1] = C_inf.COA_count[i][j];
+
+                            Array.Resize<string[]>(ref ID_index, ID_index.Length + 1);
+                            ID_index[ID_index.Length - 1] = new string[C_inf.COADate[i][j].Length];
+                            for (int k = 0; k < C_inf.COADate[i][j].Length; k++)
+                                ID_index[ID_index.Length - 1][k] = C_inf.COADate[i][j][k];
+                        }
+                        else
+                        {
+                            ID_Count[index] += C_inf.COA_count[i][j];
+                            int len = ID_index[index].Length;
+                            Array.Resize<string>(ref ID_index[index], ID_index[index].Length + C_inf.COADate[i][j].Length);
+                            for (int k = len; k < len + C_inf.COADate[i][j].Length; k++)
+                                ID_index[index][k] = C_inf.COADate[i][j][k - len];
+                        }
+                    }
+                }
+            }
+            else
+            {
+                for (int i = 0; i < C_infor.BOADate.Length; i++)
+                {
+                    if (C_inf.BOAID[i] == null)
+                        continue;
+                    for (int j = 0; j < C_infor.BOADate[i].Length; j++)
+                    {
+                        int index = -1;
+                        for (int k = 0; k < ID.Length; k++)
+                        {
+                            if (ID[k] == C_inf.BOAID[i][j])
+                            {
+                                index = k;
+                                break;
+                            }
+                        }
+                        if (index == -1)
+                        {
+                            Array.Resize<string>(ref ID, ID.Length + 1);
+                            ID[ID.Length - 1] = C_inf.BOAID[i][j];
+
+                            Array.Resize<int>(ref ID_Count, ID_Count.Length + 1);
+                            ID_Count[ID_Count.Length - 1] = C_inf.BOA_count[i][j];
+
+                            Array.Resize<string[]>(ref ID_index, ID_index.Length + 1);
+                            ID_index[ID_index.Length - 1] = new string[C_inf.BOADate[i][j].Length];
+                            for (int k = 0; k < C_inf.BOADate[i][j].Length; k++)
+                                ID_index[ID_index.Length - 1][k] = C_inf.BOADate[i][j][k];
+                        }
+                        else
+                        {
+                            ID_Count[index] += C_inf.BOA_count[i][j];
+                            int len = ID_index[index].Length;
+                            Array.Resize<string>(ref ID_index[index], len + C_inf.BOADate[i][j].Length);
+                            for (int k = len; k < len + C_inf.BOADate[i][j].Length; k++)
+                                ID_index[index][k] = C_inf.BOADate[i][j][k - len];
+                        }
+                    }
+                }
+            }
+            if (ID.Length == 0)
+                return null;
+            double[] ID_weight = new double[ID.Length];
+            double[] ID_weight1 = new double[ID.Length];
+            double[] ID_weight2 = new double[ID.Length];
+            //double[] ID_weight3 = new double[ID.Length];
+            ID_weight1 = Weight1(ID_Count);
+            ID_weight2 = Weight2(ID_index);
+            //ID_weight3 = Weight3(ID_Count);
+            double Max = 0;
+            int Mindex = 0;
+            double M1 = 0.3, M2 = 0.7;
+            for (int i = 0; i < ID_weight.Length; i++)
+            {
+                ID_weight[i] = ID_weight1[i] * M1 + ID_weight2[i] * M2;
+                if (ID_weight[i] > Max)
+                {
+                    Max = ID_weight[i];
+                    Mindex = i;
+                }
+            }
+            B_C = ID[Mindex];
+            return B_C;
+        }
+        static double[] Weight1(int[] Count)
+        {
+            double[] Val = new double[Count.Length];
+            double sum = 0;
+            for (int i = 0; i < Count.Length; i++)
+                sum += Count[i];
+            for (int i = 0; i < Count.Length; i++)
+                Val[i] = (float)Count[i] / sum;
+            return Val;
+        }
+        static double[] Weight2(string[][] Indexes)
+        {
+            double[] Val = new double[Indexes.Length];
+            double Sum = 0;
+            for (int i = 0; i < Indexes.Length; i++)
+                Sum += Indexes[i].Length;
+            double dt = 2.0 / (Sum * Sum), x0 = 1.0 / Sum + (Sum - 1) / 2.0 * dt;
+            double S = 0;
+            for (int i = 0; i < Indexes.Length; i++)
+            {
+                int Mnum = (int)Sum;
+                for (int j = 0; j < Indexes[i].Length; j++)
+                {
+                    int num = OrderNum(Indexes, i, j);
+                    if (num < Mnum)
+                        Mnum = num;
+                }
+                Val[i] += x0 - (float)Mnum * dt;
+                S += Val[i];
+            }
+            for (int i = 0; i < Val.Length; i++)
+                Val[i] = Val[i] / S;
+            return Val;
+        }
+        static bool Order(string p1, string p2)
+        {
+            string[] s1 = p1.Split('/'), s2 = p2.Split('/');
+            string[] q1 = s1[2].Split(' '), q2 = s2[2].Split(' ');
+            if (Convert.ToInt32(q1[0]) < Convert.ToInt32(q2[0]))
+                return false;
+            else if (Convert.ToInt32(q1[0]) > Convert.ToInt32(q2[0]))
+                return true;
+            if (Convert.ToInt32(s1[0]) < Convert.ToInt32(s2[0]))
+                return false;
+            else if (Convert.ToInt32(s1[0]) > Convert.ToInt32(s2[0]))
+                return true;
+            if (Convert.ToInt32(s1[1]) < Convert.ToInt32(s2[1]))
+                return false;
+            else if (Convert.ToInt32(s1[1]) > Convert.ToInt32(s2[1]))
+                return true;
+            if (q1[2] == "PM" && q2[2] == "AM")
+                return true;
+            else if (q1[2] == "AM" && q2[2] == "PM")
+                return false;
+            string[] q11 = q1[1].Split(':'), q12 = q2[1].Split(':');
+            if (Convert.ToInt32(q11[0]) < Convert.ToInt32(q12[0]))
+                return false;
+            else if (Convert.ToInt32(q11[0]) > Convert.ToInt32(q12[0]))
+                return true;
+            if (Convert.ToInt32(q11[1]) < Convert.ToInt32(q12[1]))
+                return false;
+            else if (Convert.ToInt32(q11[1]) > Convert.ToInt32(q12[1]))
+                return true;
+            if (Convert.ToInt32(q11[2]) < Convert.ToInt32(q12[2]))
+                return false;
+            return true;
+        }
+        static int OrderNum(string[][] post, int n, int m)
+        {
+            int k = 0;
+            string pos = post[n][m];
+            for (int i = 0; i < post.Length; i++)
+            {
+                for (int j = 0; j < post[i].Length; j++)
+                {
+                    if (Order(post[i][j], post[n][m]))
+                        k++;
+                }
+            }
+            return k;
+        }
+        static double[] Weight3(int[] Count)
+        {
+            double[] Val = new double[Count.Length];
+            float len = Count.Length;
+            double dt = 1.0 / len;
+            double Sum = 0;
+            for (int i = 0; i < len; i++)
+                Sum += Math.Exp((float)i * dt);
+            for (int i = 0; i < len; i++)
+                Val[i] = Math.Exp((float)i * dt) / Sum;
+            return Val;
+        }
+
+        private static string NonSearchablePDF(byte[] imageBytes)
+        {
+            string base64String = string.Empty;
+            using (Bitmap imageOri = Pdf2OneImage(imageBytes))
+            {
+                double rate = 1.0;
+                if (imageOri.Width < imageOri.Height)
+                {
+                    if (imageOri.Width > 1500) rate = imageOri.Width / 1500.0;
+                }
+                else
+                {
+                    if (imageOri.Height > 1500) rate = imageOri.Height / 1500.0;
+                }
+                rate = 1.0;
+                Image image = ResizeImage(imageOri, (int)(imageOri.Width / rate), (int)(imageOri.Height / rate));
+
+                int width = image.Width;
+                int height = image.Height;
+                //     image.Save("D:\\a.jpg");
+                using (MemoryStream m = new MemoryStream())
+                {
+                    image.Save(m, System.Drawing.Imaging.ImageFormat.Jpeg);
+                    byte[] imgBytes = m.ToArray();
+
+                    // Convert byte[] to Base64 String
+                    //base64String = Convert.ToBase64String(imgBytes);
+                    base64String = CheckRotationAndConvertToBase64(imgBytes);
+
+                }
+            }
+            return base64String;
+        }
+
+        public static Bitmap Pdf2OneImage(byte[] imageBytes)
+        {
+            //   var d = Gosh( pdfFile);
+
+            List<Bitmap> lstBmp = ConvertPdf2ListBitmap(imageBytes);
+            Bitmap result = lstBmp[0];
+            for (int i = 1; i < lstBmp.Count; i++)
+            {
+                // result = MergeTwoImages((Image)result, (Image)lstBmp[i]);
+            }
+
+
+            return result;
+        }
+
+        private static List<Bitmap> ConvertPdf2ListBitmap(byte[] imageBytes)
+        {
+            MagickReadSettings settings = new MagickReadSettings();
+            // Settings the density to 300 dpi will create an image with a better quality
+            settings.Density = new Density(300);
+            List<Bitmap> lResult = new List<Bitmap>();
+            using (MagickImageCollection images = new MagickImageCollection())
+            {
+                try
+                {
+                    //var pathI = "D:\\Receipts\\Airtel Bill.pdf";
+                    //images.Read(pathI, settings);
+                    images.Read(imageBytes, settings);
+
+                    int page = 1;
+                    foreach (MagickImage image in images)
+                    {
+                        image.Format = MagickFormat.Jpg;
+                        lResult.Add(image.ToBitmap());
+                        page++;
+                    }
+                }
+                catch (Exception e)
+                {
+
+                }// Add all the pages of the pdf file to the collection
+
+            }
+
+            return lResult;
+        }
+
+        private static Image ResizeImage(Image image, int width, int height)
+        {
+            var destRect = new Rectangle(0, 0, width, height);
+            var destImage = new Bitmap(width, height);
+
+            destImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
+
+            using (var graphics = Graphics.FromImage(destImage))
+            {
+                graphics.CompositingMode = CompositingMode.SourceCopy;
+                graphics.CompositingQuality = CompositingQuality.HighQuality;
+                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                graphics.SmoothingMode = SmoothingMode.HighQuality;
+                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+                using (var wrapMode = new ImageAttributes())
+                {
+                    wrapMode.SetWrapMode(WrapMode.TileFlipXY);
+                    graphics.DrawImage(image, destRect, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, wrapMode);
+                }
+            }
+
+            return (Image)destImage;
+        }
+
+        private static string CheckRotationAndConvertToBase64(byte[] imageBytes)
+        {
+            string base64String = "";
+            System.Drawing.Image image = System.Drawing.Image.FromStream(new System.IO.MemoryStream(imageBytes));
+            //if (image.PropertyIdList.Contains(0x0112)) //0x0112 is available in photoshop images
+            //{
+            //    PropertyItem propOrientation = image.GetPropertyItem(0x0112);
+            //    short orientation = BitConverter.ToInt16(propOrientation.Value, 0);
+            //    if (orientation == 6)
+            //    {
+            //        image.RotateFlip(RotateFlipType.Rotate90FlipNone);
+            //    }
+            //    else if (orientation == 8)
+            //    {
+            //        image.RotateFlip(RotateFlipType.Rotate270FlipNone);
+            //    }
+            //    else
+            //    {
+            //        // Do nothing
+            //    }
+            //}
+
+            if (Array.IndexOf(image.PropertyIdList, 274) > -1)
+            {
+                var orientation = (int)image.GetPropertyItem(274).Value[0];
+                switch (orientation)
+                {
+                    case 1:
+                        // No rotation required.
+                        break;
+                    case 2:
+                        image.RotateFlip(RotateFlipType.RotateNoneFlipX);
+                        break;
+                    case 3:
+                        image.RotateFlip(RotateFlipType.Rotate180FlipNone);
+                        break;
+                    case 4:
+                        image.RotateFlip(RotateFlipType.Rotate180FlipX);
+                        break;
+                    case 5:
+                        image.RotateFlip(RotateFlipType.Rotate90FlipX);
+                        break;
+                    case 6:
+                        image.RotateFlip(RotateFlipType.Rotate90FlipNone);
+                        break;
+                    case 7:
+                        image.RotateFlip(RotateFlipType.Rotate270FlipX);
+                        break;
+                    case 8:
+                        image.RotateFlip(RotateFlipType.Rotate270FlipNone);
+                        break;
+                }
+                // This EXIF data is now invalid and should be removed.
+                image.RemovePropertyItem(274);
+            }
+            //Convert to Base64
+            using (MemoryStream m = new MemoryStream())
+            {
+                image.Save(m, System.Drawing.Imaging.ImageFormat.Jpeg);
+                byte[] imageBytesArray = m.ToArray();
+
+                // Convert byte[] to Base64 String
+                base64String = Convert.ToBase64String(imageBytesArray);
+            }
+
+            return base64String;
+        }
+    }
+}

@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Keyword>
+  <Group name="Sub Total">
+    <Key name="SubTotal">
+      <WordDetected>TOLL PAID</WordDetected>
+      <WordDetected>Sub Total</WordDetected>
+      <WordDetected>SubTotal</WordDetected>
+      <WordDetected>SubTota</WordDetected>
+      <WordDetected>Sub/Tt</WordDetected>
+      <WordDetected>Sub/Ttl</WordDetected>
+      <WordDetected>sub-total</WordDetected>
+      <WordDetected>sale subtotal</WordDetected>
+      <WordDetected>sale sub total</WordDetected>
+      <WordDetected>SUBTL/SOUS-TOTAL</WordDetected>
+      <WordDetected>Invoice Subtotal</WordDetected>
+      <WordDetected>Total Ordered</WordDetected>
+      <WordDetected>Sub-total/Sous-total</WordDetected>
+      <WordDetected>Sub-Tota 1</WordDetected>
+      <WordDetected>Item Subtotal</WordDetected>
+
+      <WordDetected>SALE AMT</WordDetected>
+      <WordDetected>subtl</WordDetected>
+      <WordDetected>Bar Subtotal</WordDetected>
+
+      <WordDetected>Food Subtotal</WordDetected>
+      <WordDetected>SUB- TOTAL Tax</WordDetected>
+      <WordDetected>Subtotal r</WordDetected>
+      <WordDetected>btotal</WordDetected>
+      <WordDetected>UBTOTAL</WordDetected>
+      <WordDetected>Net</WordDetected>
+    </Key>
+
+    <!--  <Key name="Sub Total Amount">
+	<WordDetected>Amount</WordDetected>
+        <WordDetected>anount</WordDetected>
+	<WordDetected>Ainount</WordDetected>
+ </Key>	 -->
+  </Group>
+  <Group name="Total before tip">
+    <Key name="Pre-tip">
+      <WordDetected>pre-tip</WordDetected>
+      <WordDetected>pre-tip AMT</WordDetected>
+      <WordDetected>total before tip</WordDetected>
+      <WordDetected>PRE-TP AMT</WordDetected>
+      <WordDetected>PRE-TTP AMT</WordDetected>
+      <WordDetected>Base</WordDetected>
+      <WordDetected>Check Amount</WordDetected>
+
+    </Key>
+  </Group>
+
+
+  <Group name="Tax">
+    <Key name ="Total Tax">
+      <WordDetected>total tax</WordDetected>
+      <WordDetected>total taxes</WordDetected>
+      <WordDetected>SALES TAX B</WordDetected>
+
+      <WordDetected>tax amt</WordDetected>
+      <WordDetected>tax</WordDetected>
+      <WordDetected>tax1</WordDetected>
+      <WordDetected>Taxes</WordDetected>
+      <WordDetected>Product Tax</WordDetected>
+      <WordDetected>sales tax</WordDetected>
+      <WordDetected>sales tx</WordDetected>
+      <WordDetected>sales tax total</WordDetected>
+      <WordDetected>surcharge</WordDetected>
+      <WordDetected>VAT</WordDetected>
+      <WordDetected>EAT In TAX</WordDetected>
+      <WordDetected>Tax Calculated GST/HST</WordDetected>
+      <WordDetected>Tax Calculated PST/QST</WordDetected>
+      <WordDetected>General Sales Tax (7x)</WordDetected>
+
+    </Key>
+    <Key name="tax">
+
+      <WordDetected>GST</WordDetected>
+      <WordDetected>GST included</WordDetected>
+      <WordDetected>GST inc.</WordDetected>
+      <WordDetected>GST/TPS</WordDetected>
+      <WordDetected>GST I HST</WordDetected>
+      <WordDetected>PST Sales Tax</WordDetected>
+      <WordDetected>PST/TVP</WordDetected>
+      <WordDetected>HST/TVH</WordDetected>
+      <WordDetected>HST</WordDetected>
+      <WordDetected>GST/HST</WordDetected>
+      <WordDetected>GST-HST/TPS</WordDetected>
+      <WordDetected>PST</WordDetected>
+      <WordDetected>PST/QST</WordDetected>
+      <WordDetected>HST/GST</WordDetected>
+      <WordDetected>Federal GST</WordDetected>
+      <WordDetected>State PST</WordDetected>
+      <WordDetected>LIQPST</WordDetected>
+      <WordDetected>BC HST</WordDetected>
+      <WordDetected>GST CA</WordDetected>
+      <WordDetected>PST BC</WordDetected>
+
+
+
+
+    </Key>
+
+    <Key name="tax for gas">
+      <WordDetected>GST un fuel</WordDetected>
+    </Key>
+
+  </Group>
+
+  <Group name="Tip">
+    <Key name="Tip">
+      <WordDetected>tip</WordDetected>
+      <WordDetected>tip amount</WordDetected>
+      <WordDetected>Gratuity</WordDetected>
+    </Key>
+  </Group>
+
+
+  <Group name="Total">
+    <Key name="Total">
+      <WordDetected>total</WordDetected>
+      <WordDetected>tota</WordDetected>
+      <WordDetected>TOTALE</WordDetected>
+      <WordDetected>total fare</WordDetected>
+      <WordDetected>otal</WordDetected>
+      <WordDetected>Total USD</WordDetected>
+      <WordDetected>Total payable</WordDetected>
+      <WordDetected>Total Paid</WordDetected>
+      <WordDetected>otal Paid</WordDetected>
+      <WordDetected>TOTAL PAID including GST</WordDetected>
+      <WordDetected>TOTAL inc GST</WordDetected>
+      <WordDetected>Inclusive TOTAL due</WordDetected>
+      <WordDetected>Total fees this memo</WordDetected>
+      <WordDetected>TOTAL RENEWAL FEE</WordDetected>
+      <WordDetected>Grand Total</WordDetected>
+      <WordDetected>Total Approximate Charge</WordDetected>
+      <WordDetected>TAKE-OUT **TOTAL</WordDetected>
+      <WordDetected>TOTAL/TOTAL</WordDetected>
+      <WordDetected>Total Billed</WordDetected>
+      <WordDetected>Invoice Total</WordDetected>
+      <WordDetected>TOTAL ASSETS</WordDetected>
+      <WordDetected>Final Balance</WordDetected>
+      <WordDetected>Estimate total</WordDetected>
+      <WordDetected>total amt</WordDetected>
+      <WordDetected>total am</WordDetected>
+      <WordDetected>total fuel</WordDetected>
+      <WordDetected>RECEIPT TOTAL</WordDetected>
+      <WordDetected>GENERAL MDSE TOTAL</WordDetected>
+      <WordDetected>Total Eat In</WordDetected>
+      <WordDetected>Gross</WordDetected>
+    </Key>
+
+    <Key name="Order Total">
+      <WordDetected>Ordered Total</WordDetected>
+      <WordDetected>Order Total</WordDetected>
+      <WordDetected>total amount</WordDetected>
+    </Key>
+
+    <Key name="Total Sale">
+      <WordDetected>Total Sale</WordDetected>
+      <WordDetected>sale</WordDetected>
+      <WordDetected>Sa le</WordDetected>
+
+      <WordDetected>sale amount</WordDetected>
+    </Key>
+
+    <Key name="purchase">
+      <WordDetected>purchase</WordDetected>
+      <WordDetected>paid</WordDetected>
+    </Key>
+
+    <Key name="payment">
+      <WordDetected>payment</WordDetected>
+      <WordDetected>payment total</WordDetected>
+      <WordDetected>payment amount</WordDetected>
+      <WordDetected>total payment</WordDetected>
+      <WordDetected>Please pay this amount</WordDetected>
+      <WordDetected>VEUILLEZ PAYER CE</WordDetected>
+
+      <WordDetected>Please pay</WordDetected>
+
+      <WordDetected>total paid</WordDetected>
+    </Key>
+
+    <Key name="Grand total">
+      <WordDetected>Grand total</WordDetected>
+      <WordDetected>Grand tota</WordDetected>
+      <WordDetected>Grand tota 1</WordDetected>
+      <WordDetected>invoice grand total</WordDetected>
+
+    </Key>
+
+    <Key name="to go total">
+      <WordDetected>to go tota</WordDetected>
+      <WordDetected>to go total</WordDetected>
+      <WordDetected>go tota</WordDetected>
+    </Key>
+
+    <Key name="total due">
+      <WordDetected>Total due</WordDetected>
+      <WordDetected>Toll due</WordDetected>
+      <WordDetected>Total amount due</WordDetected>
+      <WordDetected>AMOUNT DUE</WordDetected>
+      <WordDetected>Amount owing</WordDetected>
+      <WordDetected>Past due</WordDetected>
+    </Key>
+
+    <Key name="Charged Amount">
+      <WordDetected>charged AMT</WordDetected>
+      <WordDetected>charged</WordDetected>
+      <WordDetected>charged Amount</WordDetected>
+      <WordDetected>charged Anount</WordDetected>
+      <WordDetected>Charge Anount</WordDetected>
+      <WordDetected>Charge Amount</WordDetected>
+      <WordDetected>AMOUNT PAID</WordDetected>
+      <WordDetected>Total Current Charges</WordDetected>
+      <WordDetected>Amount</WordDetected>
+      <WordDetected>AMOUNT CAD</WordDetected>
+      <WordDetected>total charges</WordDetected>
+
+      <WordDetected>Invoice Amount</WordDetected>
+
+      <WordDetected>Net amount</WordDetected>
+      <WordDetected>Debit</WordDetected>
+      <WordDetected>redit Card</WordDetected>
+      <WordDetected>redit and</WordDetected>
+
+    </Key>
+
+    <Key name="Visa">
+      <WordDetected>Visa</WordDetected>
+    </Key>
+    <Key name="Dine In Total">
+      <WordDetected>Dine In Total</WordDetected>
+      <WordDetected>Dine In Tota</WordDetected>
+      <WordDetected>Dine-In Total</WordDetected>
+    </Key>
+
+    <Key name="EAT IN">
+      <WordDetected>EAT IN</WordDetected>
+      <WordDetected>DIT TN</WordDetected>
+
+    </Key>
+    <Key name ="Balance">
+
+      <WordDetected>Balance</WordDetected>
+      <WordDetected>Balance payable</WordDetected>
+      <WordDetected>Balance Due</WordDetected>
+      <WordDetected>Balance Paid in Full</WordDetected>
+    </Key>
+    <Key name="Total for Gas">
+      <WordDetected>fuel total</WordDetected>
+    </Key>
+
+  </Group>
+  <Group name="Tendered Cash">
+    <Key name="Cash">
+      <WordDetected>cash</WordDetected>
+      <WordDetected>cash at the end of the month</WordDetected>
+      <WordDetected>Tendered</WordDetected>
+    </Key>
+  </Group>
+
+  <Group name="Change">
+    <Key name="Change">
+      <WordDetected>Change</WordDetected>
+      <WordDetected>Current Charges </WordDetected>
+
+    </Key>
+  </Group>
+
+</Keyword>
+

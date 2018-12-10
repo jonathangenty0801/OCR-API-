@@ -1,0 +1,27 @@
+F:\Mycompleted task\AI_plan\OCRConsole\bin\Debug\OCRConsole.exe.config
+F:\Mycompleted task\AI_plan\OCRConsole\bin\Debug\OCRConsole.exe
+F:\Mycompleted task\AI_plan\OCRConsole\bin\Debug\OCRConsole.pdb
+F:\Mycompleted task\AI_plan\OCRConsole\bin\Debug\Canucks.OCRRepository.dll
+F:\Mycompleted task\AI_plan\OCRConsole\bin\Debug\Canucks.OCRData.dll
+F:\Mycompleted task\AI_plan\OCRConsole\bin\Debug\Newtonsoft.Json.dll
+F:\Mycompleted task\AI_plan\OCRConsole\bin\Debug\Canucks.OCRRepository.pdb
+F:\Mycompleted task\AI_plan\OCRConsole\bin\Debug\Canucks.OCRData.pdb
+F:\Mycompleted task\AI_plan\OCRConsole\bin\Debug\Newtonsoft.Json.xml
+F:\Mycompleted task\AI_plan\OCRConsole\obj\Debug\OCRConsole.csprojResolveAssemblyReference.cache
+F:\Mycompleted task\AI_plan\OCRConsole\obj\Debug\OCRConsole.exe
+F:\Mycompleted task\AI_plan\OCRConsole\obj\Debug\OCRConsole.pdb
+F:\Mycompleted task\AI_plan\OCRConsole\bin\Debug\Canucks.Entities.dll
+F:\Mycompleted task\AI_plan\OCRConsole\bin\Debug\EntityFramework.dll
+F:\Mycompleted task\AI_plan\OCRConsole\bin\Debug\Microsoft.AspNet.Identity.EntityFramework.dll
+F:\Mycompleted task\AI_plan\OCRConsole\bin\Debug\Microsoft.AspNet.Identity.Core.dll
+F:\Mycompleted task\AI_plan\OCRConsole\bin\Debug\Canucks.Entities.pdb
+F:\Mycompleted task\AI_plan\OCRConsole\bin\Debug\EntityFramework.xml
+F:\Mycompleted task\AI_plan\OCRConsole\bin\Debug\Microsoft.AspNet.Identity.EntityFramework.xml
+F:\Mycompleted task\AI_plan\OCRConsole\bin\Debug\Microsoft.AspNet.Identity.Core.xml
+F:\AI_plan\OCRConsole\bin\Debug\OCRConsole.exe.config
+F:\AI_plan\OCRConsole\obj\Debug\OCRConsole.exe
+F:\AI_plan\OCRConsole\obj\Debug\OCRConsole.pdb
+F:\AI_plan\OCRConsole\obj\Debug\OCRConsole.csprojResolveAssemblyReference.cache
+F:\AI_plan\OCRConsole\bin\Debug\OCRConsole.exe
+F:\AI_plan\OCRConsole\bin\Debug\OCRConsole.pdb
+F:\AI_plan\OCRConsole\bin\Debug\Newtonsoft.Json.xml

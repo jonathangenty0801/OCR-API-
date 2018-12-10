@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Keyword>
+  <Group name="BillID">
+    <Key name="BillID">
+
+      <WordDetected>Invoice Number</WordDetected>
+      <WordDetected>Invoice ID</WordDetected>
+      <WordDetected>Invoice No</WordDetected>
+      <WordDetected>Invoke No</WordDetected>
+      <WordDetected>INUO ICE NO</WordDetected>
+      <WordDetected>Invaice No</WordDetected>
+      <WordDetected>NVOICE NO</WordDetected>
+      <WordDetected>INVIDICE</WordDetected>
+      <WordDetected>Invoice #</WordDetected>
+
+      <WordDetected>Bill Number</WordDetected>
+      <WordDetected>Bill No</WordDetected>
+      <WordDetected>Number</WordDetected>
+      <WordDetected>Payment ID</WordDetected>
+
+      <WordDetected>Sale No</WordDetected>
+      <!--  <WordDetected>Account Number</WordDetected> <WordDetected>Account Number</WordDetected> -->
+      <WordDetected>RECEIPT NUMBER</WordDetected>
+      <WordDetected>RECEIPT</WordDetected>
+      <WordDetected>Payment Invoice Number</WordDetected>
+      <WordDetected>Order Number</WordDetected>
+      <WordDetected>Order No</WordDetected>
+      <WordDetected>Order ID</WordDetected>
+      <WordDetected>Order</WordDetected>
+
+      <WordDetected>Packing Slip No</WordDetected>
+      <WordDetected>Statement No</WordDetected>
+      <WordDetected>Iny</WordDetected>
+
+      <WordDetected>Document number</WordDetected>
+      <WordDetected>Invoice</WordDetected>
+      <WordDetected>Inv</WordDetected>
+      <WordDetected>No</WordDetected>
+      <WordDetected>TR</WordDetected>
+    </Key>
+  </Group>
+</Keyword>

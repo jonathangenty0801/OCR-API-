@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Currency>
+<Item>      
+          <Country> United States</Country>
+		  <CurrencyCode>usd</CurrencyCode>
+          <Symboy>$,S</Symboy>
+		 
+   </Item>
+   <Item>      
+         <Country>Euro</Country>
+		  <CurrencyCode>EUR</CurrencyCode>
+          <Symboy>€,c</Symboy>
+		 
+   </Item>
+   <Item>      
+         <Country>Japanese</Country>
+		  <CurrencyCode>JPY</CurrencyCode>
+          <Symboy>¥</Symboy>
+		 
+   </Item>
+    <Item>      
+         <Country>Pound sterling</Country>
+		  <CurrencyCode>GBP </CurrencyCode>
+          <Symboy>£</Symboy>
+		 
+   </Item>
+   <Item>      
+         <Country>Australian dollar</Country>
+		  <CurrencyCode>AUD</CurrencyCode>
+          <Symboy>$</Symboy>
+		 
+   </Item>
+    <Item>      
+         <Country>Canadina Dollars</Country>
+		  <CurrencyCode>CAD</CurrencyCode>
+          <Symboy>$</Symboy>
+		 
+   </Item>
+    <Item>      
+         <Country>Swiss franc</Country>
+		  <CurrencyCode>CHF</CurrencyCode>
+          <Symboy>Fr</Symboy>
+		 
+   </Item>
+    <Item>      
+         <Country>Chinese yuan</Country>
+		  <CurrencyCode>CNY</CurrencyCode>
+          <Symboy>¥</Symboy>
+		 
+   </Item>
+    <Item>      
+         <Country>Swedish krona</Country>
+		  <CurrencyCode>SEK</CurrencyCode>
+          <Symboy>kr</Symboy>
+		 
+   </Item>
+    <Item>      
+         <Country>Mexican peso</Country>
+		  <CurrencyCode>MXN</CurrencyCode>
+          <Symboy>$</Symboy>
+		 
+   </Item>
+    <Item>      
+         <Country>New Zealand dollar</Country>
+		  <CurrencyCode>NZD</CurrencyCode>
+          <Symboy>$</Symboy>
+		 
+   </Item>
+    <Item>      
+         <Country>Singapore dollar</Country>
+		  <CurrencyCode>SGD</CurrencyCode>
+          <Symboy>$</Symboy>
+		 
+   </Item>
+    <Item>      
+         <Country>Hong Kong dollar</Country>
+		  <CurrencyCode>HKD</CurrencyCode>
+          <Symboy>$</Symboy>
+		 
+   </Item>
+    <Item>      
+         <Country>Norwegian krone</Country>
+		  <CurrencyCode>NOK</CurrencyCode>
+          <Symboy>kr</Symboy>
+		 
+   </Item>
+    <Item>      
+         <Country>South Korean won</Country>
+		  <CurrencyCode>NZD</CurrencyCode>
+          <Symboy>₩,w</Symboy>
+		 
+   </Item>
+    <Item>      
+         <Country>Turkish lira</Country>
+		  <CurrencyCode>TRY</CurrencyCode>
+          <Symboy>$</Symboy>
+		 
+   </Item>
+    <Item>      
+         <Country>Russian ruble</Country>
+		  <CurrencyCode>RUB </CurrencyCode>
+          <Symboy>$</Symboy>
+		 
+   </Item>
+    <Item>      
+         <Country> Brazilian real</Country>
+		  <CurrencyCode>BRL</CurrencyCode>
+          <Symboy>R$</Symboy>
+		 
+   </Item>
+   
+   
+    <Item>      
+         <Country>Indian rupee</Country>
+		  <CurrencyCode>INR</CurrencyCode>
+          <Symboy>₹</Symboy>
+		 
+   </Item>
+   <Item>      
+         <Country>Other</Country>
+		  <CurrencyCode>-</CurrencyCode>
+          <Symboy>P</Symboy>
+		 
+   </Item>
+	
+</Currency>

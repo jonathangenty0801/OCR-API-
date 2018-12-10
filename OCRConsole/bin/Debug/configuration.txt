@@ -1,0 +1,26 @@
+Issuer/retailer:address
+ABN
+Accont name:string
+Account name
+Service type:type
+electricity
+gas
+Electricity & gas
+water
+Mobile
+Amount due:amount
+amount due
+total due
+total amount
+Date due:date
+DATE DUE
+PAY BY
+DUE DATE
+PAYMENT DUE
+DUE BY
+CHARGES BY
+BPay Biller:address
+Biller Code
+BPay Ref:address
+Ref No
+Ref
